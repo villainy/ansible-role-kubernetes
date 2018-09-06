@@ -1,12 +1,31 @@
 ---
-- name: Install Epel
-  package: name=epel-release state=installed
+- name: Set up local repository
+  block:
+    - file:
+        path: /opt/repo
+        state: directory
+    - unarchive:
+        src: rpm.tar.gz
+        dest: /opt/repo/
+        creates: /opt/repo/local/repodata/repomd.xml
+    - yum_repository:
+        name: local
+        baseurl: file:///opt/repo/local
+        gpgcheck: no
+  when: offline_install
 
-- name: Install packages
-  package: name=docker state=installed
-
-- name: Start docker service
-  service: name=docker state=started enabled=yes
+- name: Install local packages
+  yum:
+    name: '{{ item }}'
+    state: present
+    disablerepo: *
+    enablerepo: local
+  with_items:
+    - epel-release
+    - docker
+    - kubelet
+    - kubeadm
+    - kubectl
   
 - copy:
     dest: /etc/yum.repos.d/kubernetes.repo
@@ -18,19 +37,35 @@
         gpgcheck=1
         repo_gpgcheck=1
         gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+  when: not offline_install
+
+- name: Install Epel
+  package: name=epel-release state=installed
+  when: not offline_install
+
+- name: Install packages
+  package: name=docker state=installed
+  when: not offline_install
+
+- name: Start docker service
+  service: name=docker state=started enabled=yes
+  when: not offline_install
 
 - name: import gpg key
   rpm_key:
     key: https://packages.cloud.google.com/yum/doc/yum-key.gpg
     state: present
   register: import_key
+  when: not offline_install
                                                                                                        
 - name: Make cache
   command: "yum -q makecache -y --disablerepo='*' --enablerepo='kubernetes'"
-  when: import_key.changed
+  when: import_key.changed and not offline_install
+  when: not offline_install
 
 - name: Install packages
   package: name=kubelet,kubeadm,kubectl state=present
+  when: not offline_install
 
 - name: Start kubelet service
   service: name=kubelet state=started enabled=yes
