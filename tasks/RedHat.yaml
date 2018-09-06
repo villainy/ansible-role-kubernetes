@@ -5,13 +5,14 @@
         path: /opt/repo
         state: directory
     - unarchive:
-        src: rpm.tar.gz
+    src: kube-rpm.tar.gz
         dest: /opt/repo/
-        creates: /opt/repo/local/repodata/repomd.xml
+        creates: /opt/repo/kube-rpm/repodata/repomd.xml
     - yum_repository:
-        name: local
-        baseurl: file:///opt/repo/local
+        name: kube-rpm
+        baseurl: file:///opt/repo/kube-rpm
         gpgcheck: no
+        enabled: no
   when: offline_install
 
 - name: Install local packages
