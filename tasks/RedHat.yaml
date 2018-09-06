@@ -5,11 +5,12 @@
         path: /opt/repo
         state: directory
     - unarchive:
-    src: kube-rpm.tar.gz
+        src: kube-rpm.tar.gz
         dest: /opt/repo/
         creates: /opt/repo/kube-rpm/repodata/repomd.xml
     - yum_repository:
         name: kube-rpm
+        description: local rpms for kube
         baseurl: file:///opt/repo/kube-rpm
         gpgcheck: no
         enabled: no
@@ -20,7 +21,7 @@
     name: '{{ item }}'
     state: present
     disablerepo: *
-    enablerepo: local
+    enablerepo: kube-rpm
   with_items:
     - epel-release
     - docker
